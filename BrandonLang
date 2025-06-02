@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Matiu y no McConaughey, Brandon Lang?</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-black text-white min-h-screen p-4">
+  <header class="text-center mb-6">
+    <h1 class="text-4xl font-bold">Matiu y no McConaughey, Brandon Lang?</h1>
+    <p class="text-gray-400">Tus mejores apuestas del día, rendimiento y más</p>
+    <p class="text-sm text-gray-400 mt-2" id="datetime"></p>
+  </header>
+
+  <div class="flex justify-center gap-6 flex-wrap my-10" id="stats-cards"></div>
+
+  <section id="daily-pick" class="bg-gray-800 rounded-xl p-6 shadow-lg mb-6 max-w-xl mx-auto text-center">
+    <h2 class="text-xl font-bold mb-2 text-white">Pick del Día</h2>
+    <ul id="daily-pick-list" class="list-disc list-inside text-gray-300"></ul>
+  </section>
+
+  <section class="bg-gray-900 rounded-xl p-6 shadow-lg mb-10 max-w-xl mx-auto text-left font-sans">
+    <h2 class="text-xl font-bold mb-2 text-white">Feedback del Pick</h2>
+    <p id="journal-entry" class="text-gray-300">Cargando comentario...</p>
+  </section>
+
+  <section class="max-w-5xl mx-auto px-4 mb-4">
+    <h2 class="text-2xl font-bold text-center mb-4">Últimos dos Picks</h2>
+    <div class="grid md:grid-cols-2 gap-6" id="last-picks"></div>
+  </section>
+
+  <section class="bg-gray-800 p-6 rounded-2xl mb-10 max-w-4xl mx-auto">
+    <h2 class="text-2xl font-bold mb-4 text-center">Crecimiento del Bank</h2>
+    <canvas id="bankChart" height="100"></canvas>
+  </section>
+
+  <section class="max-w-6xl mx-auto my-10 px-4">
+    <h2 class="text-2xl font-bold mb-6 text-center">Historial de Picks</h2>
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="history-section"></div>
+  </section>
+
+  <script>
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString("es-MX", { timeZone: "America/Mexico_City", hour12: false });
+      const dateStr = now.toLocaleDateString("es-MX", { timeZone: "America/Mexico_City" });
+      document.getElementById("datetime").textContent = `${dateStr} - ${timeStr}`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    fetch("https://sheetdb.io/api/v1/zippuxrhikrjh")
+      .then(response => response.json())
+      .then(data => {
+        const dailyPick = data.filter(item => item.Tipo === "diario");
+        const list = document.getElementById("daily-pick-list");
+        dailyPick.forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = item.Pick;
+          list.appendChild(li);
+        });
+
+        const journalEntry = dailyPick[0]?.Comentario;
+        if (journalEntry) {
+          document.getElementById("journal-entry").textContent = journalEntry;
+        }
+
+        const history = data.filter(item => item.Tipo === "historial");
+        if (history.length > 0) {
+          const initialBank = parseFloat(history[0].Bank);
+          const currentBank = parseFloat(history[history.length - 1].Bank);
+          const roi = (((currentBank - initialBank) / initialBank) * 100).toFixed(2);
+
+          const statsDiv = document.getElementById("stats-cards");
+          statsDiv.innerHTML = `
+            <div class="bg-gray-800 rounded-xl px-6 py-4 text-center shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-400">Bank Inicial</h3>
+              <p class="text-2xl font-bold text-white">$${initialBank}</p>
+            </div>
+            <div class="bg-gray-800 rounded-xl px-6 py-4 text-center shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-400">Bank Actual</h3>
+              <p class="text-2xl font-bold text-white">$${currentBank}</p>
+            </div>
+            <div class="rounded-xl px-6 py-4 text-center shadow-lg ${roi >= 0 ? 'bg-green-700' : 'bg-red-700'}">
+              <h3 class="text-lg font-semibold text-white">ROI</h3>
+              <p class="text-2xl font-bold text-white">${roi}%</p>
+            </div>
+          `;
+
+          const chartLabels = history.map(item => item.Fecha);
+          const chartData = history.map(item => parseFloat(item.Bank));
+
+          const ctx = document.getElementById('bankChart').getContext('2d');
+          new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: chartLabels,
+              datasets: [{
+                label: 'Bank',
+                data: chartData,
+                borderColor: '#82ca9d',
+                backgroundColor: 'rgba(130, 202, 157, 0.2)',
+                fill: true,
+                tension: 0.3,
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                x: { ticks: { color: '#ccc' } },
+                y: { ticks: { color: '#ccc' } }
+              },
+              plugins: {
+                legend: { labels: { color: '#fff' } }
+              }
+            }
+          });
+        }
+
+        const picks = history.slice(-2).reverse();
+        const picksContainer = document.getElementById("last-picks");
+        picks.forEach(entry => {
+          const isWin = entry.Resultado.toLowerCase() === "ganado";
+          const bgClass = isWin ? "bg-green-900/30" : "bg-red-900/30";
+          const textClass = isWin ? "text-green-400" : "text-red-400";
+          const pickList = entry.Pick.split(',').map(p => `<li>${p.trim()}</li>`).join("");
+          picksContainer.innerHTML += `
+            <div class="rounded-xl shadow-lg p-6 text-white ${bgClass}">
+              <h2 class="text-xl font-semibold">${entry.Fecha}</h2>
+              <p class="text-sm text-gray-400 mb-2">Apuesta: $${entry.Apuesta} | Ganancia: $${entry.Ganancia}</p>
+              <p class="text-sm italic mb-2 ${textClass}">${entry.Resultado.toUpperCase()}</p>
+              <ul class="list-disc list-inside text-gray-300">${pickList}</ul>
+            </div>
+          `;
+        });
+
+        const historySection = document.getElementById("history-section");
+        history.slice().reverse().forEach(entry => {
+          const isWin = entry.Resultado.toLowerCase() === "ganado";
+          const bgClass = isWin ? "bg-green-800/30" : "bg-red-800/30";
+          const textClass = isWin ? "text-green-400" : "text-red-400";
+          const pickList = entry.Pick.split(',').map(p => `<li>${p.trim()}</li>`).join("");
+          historySection.innerHTML += `
+            <div class="rounded-xl shadow p-4 text-white ${bgClass}">
+              <h3 class="text-lg font-bold mb-1">${entry.Fecha}</h3>
+              <p class="text-sm text-gray-400 mb-2">Apuesta: $${entry.Apuesta} | Ganancia: $${entry.Ganancia}</p>
+              <p class="text-sm italic mb-1 ${textClass}">${entry.Resultado.toUpperCase()}</p>
+              <ul class="list-disc list-inside text-gray-300">${pickList}</ul>
+            </div>
+          `;
+        });
+      })
+      .catch(error => console.error("Error al cargar los datos del API:", error));
+  </script>
+</body>
+</html>
