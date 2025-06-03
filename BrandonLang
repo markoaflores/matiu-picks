@@ -3,20 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Matiu y no McConaughey, Brandon Lang?</title>
+  <title>Brandon Lang</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    .neon-border {
+      border: 2px solid #0ff;
+      box-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff;
+    }
+  </style>
 </head>
 <body class="bg-black text-white min-h-screen p-4">
   <header class="text-center mb-6">
-    <h1 class="text-4xl font-bold">Matiu y no McConaughey, Brandon Lang?</h1>
+    <h1 class="text-4xl font-bold">Brandon Lang</h1>
     <p class="text-gray-400">Tus mejores apuestas del día, rendimiento y más</p>
     <p class="text-sm text-gray-400 mt-2" id="datetime"></p>
   </header>
 
   <div class="flex justify-center gap-6 flex-wrap my-10" id="stats-cards"></div>
 
-  <section id="daily-pick" class="bg-gray-800 rounded-xl p-6 shadow-lg mb-6 max-w-xl mx-auto text-center">
+  <section id="daily-pick" class="bg-gray-800 neon-border rounded-xl p-6 shadow-lg mb-6 max-w-xl mx-auto text-center">
     <h2 class="text-xl font-bold mb-2 text-white">Pick del Día</h2>
     <ul id="daily-pick-list" class="list-disc list-inside text-gray-300"></ul>
   </section>
@@ -73,6 +79,10 @@
           const currentBank = parseFloat(history[history.length - 1].Bank);
           const roi = (((currentBank - initialBank) / initialBank) * 100).toFixed(2);
 
+          const ganados = history.filter(h => h.Resultado.toLowerCase() === "ganado").length;
+          const perdidos = history.filter(h => h.Resultado.toLowerCase() === "perdido").length;
+          const efectividad = ((ganados / (ganados + perdidos)) * 100).toFixed(1);
+
           const statsDiv = document.getElementById("stats-cards");
           statsDiv.innerHTML = `
             <div class="bg-gray-800 rounded-xl px-6 py-4 text-center shadow-lg">
@@ -86,6 +96,14 @@
             <div class="rounded-xl px-6 py-4 text-center shadow-lg ${roi >= 0 ? 'bg-green-700' : 'bg-red-700'}">
               <h3 class="text-lg font-semibold text-white">ROI</h3>
               <p class="text-2xl font-bold text-white">${roi}%</p>
+            </div>
+            <div class="bg-gray-800 rounded-xl px-6 py-4 text-center shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-400">Ganados / Perdidos</h3>
+              <p class="text-2xl font-bold text-white">${ganados} / ${perdidos}</p>
+            </div>
+            <div class="bg-gray-800 rounded-xl px-6 py-4 text-center shadow-lg">
+              <h3 class="text-lg font-semibold text-gray-400">Efectividad</h3>
+              <p class="text-2xl font-bold text-white">${efectividad}%</p>
             </div>
           `;
 
